@@ -1,2 +1,5 @@
-
 *.p
+p3-behavioral-cloning/IMG/**
+p3-behavioral-cloning/**/IMG/**
+p3-behavioral-cloning/driving_log.csv
+p3-behavioral-cloning/**/driving_log.csv
