@@ -27,8 +27,8 @@ def generator(samples, batch_size=32):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                image = cv2.imread(batch_sample[1])
-                angle = float(batch_sample[0])
+                image = cv2.imread(batch_sample[0])
+                angle = float(batch_sample[1])
                 images.append(image)
                 angles.append(angle)
 
@@ -36,7 +36,7 @@ def generator(samples, batch_size=32):
             y_train = np.array(angles)
             yield shuffle(X_train, y_train)
 
-def create_model_m():
+def create_model():
     #ch, row, col = 3, 160, 320  # camera format
     ch, row, col = 3, 80, 320  # Trimmed image format
 
@@ -58,7 +58,7 @@ def create_model_m():
     model.compile(optimizer="adam", loss="mse")
     return model
 
-def create_model():
+def create_model_n():
     """Create model
     """
     ch, row, col = 3, 80, 320  # Trimmed image format
@@ -85,81 +85,14 @@ def create_model():
     model.add(Dense(1))
     return model
 
-def preprocess():
-    samples = []
-    with open(DATA_FOLDER + 'driving_log.csv') as csvfile:
-        reader = csv.reader(csvfile)
-        # loop through all samples and flip images for any sample
-        # that has non-zero steering angle
-        for idx, row in enumerate(reader):
-            print("processing", row)
-
-            samples.append(row)
-            if idx == 0: continue #skip header
-            
-            steering = float(row[3])
-            if steering == 0: continue #skip zero steering
-            
-            row_flip = row[:]
-            row_flip[3] = -steering # flip angle
-            dir = DATA_FOLDER + "IMG/"
-            row_flip[0] = row[0].replace(".jpg", "_flip.jpg")
-            row_flip[1] = row[1].replace(".jpg", "_flip.jpg")
-            row_flip[2] = row[2].replace(".jpg", "_flip.jpg")
-            center_flip = np.fliplr(cv2.imread(dir + row[0].split("/")[-1]))
-            left_flip = np.fliplr(cv2.imread(dir + row[1].split("/")[-1]))
-            right_flip = np.fliplr(cv2.imread(dir + row[2].split("/")[-1]))
-            cv2.imwrite(dir + row_flip[0].split("/")[-1], center_flip)
-            cv2.imwrite(dir + row_flip[1].split("/")[-1], left_flip)
-            cv2.imwrite(dir + row_flip[2].split("/")[-1], right_flip)
-            samples.append(row_flip)
-
-    with open(DATA_FOLDER + 'driving_log_preprocessed.csv', 'w') as csvfile:
-        writer = csv.writer(csvfile)
-        for sample in samples:
-            writer.writerow(sample)
-
 def train():
-    CORRECTION = 0.12
     samples = []
-    left_samples = []
-    right_samples = []
-    center_samples = []
-    with open(DATA_FOLDER + 'driving_log_preprocessed.csv') as csvfile:
+    with open('processed_driving_log.csv') as csvfile:
         reader = csv.reader(csvfile)
         next(reader, None) # skip header
         for row in reader:
-            steering_center = float(row[3])
-            steering_left = steering_center + CORRECTION
-            steering_right = steering_center - CORRECTION
-            img_center = DATA_FOLDER + row[0].lstrip()
-            img_left = DATA_FOLDER + row[1].lstrip()
-            img_right = DATA_FOLDER + row[2].lstrip()
-            if steering_center > 0.2:
-                right_samples.append([steering_center, img_center])
-                right_samples.append([steering_left, img_left])
-                right_samples.append([steering_right, img_right])
-            elif steering_center < -0.2:
-                left_samples.append([steering_center, img_center])
-                left_samples.append([steering_left, img_left])
-                left_samples.append([steering_right, img_right])
-            #elif steering_center == 0:
-            else:
-                center_samples.append([steering_center, img_center])
-                center_samples.append([steering_left, img_left])
-                center_samples.append([steering_right, img_right])
-            #else:
-            #    pass #ignore these samples
-
-        shuffle(center_samples)
-        samples = samples + center_samples[0:len(left_samples) * 4]
-        samples = samples + left_samples
-        samples = samples + right_samples
-        print("left samples:", len(left_samples))
-        print("right samples:", len(right_samples))
-        print("straight samples:", len(center_samples))
-        print("samples:", len(samples))
-
+            samples.append([row[0],row[1]])
+    print("samples", len(samples))
     train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
     # compile and train the model using the generator function
