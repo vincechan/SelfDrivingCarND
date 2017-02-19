@@ -36,13 +36,13 @@ def generator(samples, batch_size=32):
             y_train = np.array(angles)
             yield shuffle(X_train, y_train)
 
-def create_model():
+def create_model_commaai():
     #ch, row, col = 3, 160, 320  # camera format
-    ch, row, col = 3, 80, 320  # Trimmed image format
+    ch, row, col = 3, 65, 320  # Trimmed image format
 
     model = Sequential()
-    model.add(Cropping2D(cropping=((60,20), (0,0)), input_shape=(160,320,3)))
-    model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(row, col, ch), output_shape=(row, col, ch)))            
+    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=(160,320,3)))
+    model.add(Lambda(lambda x: x/255 - 0.5, input_shape=(row, col, ch), output_shape=(row, col, ch)))
     model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same"))
     model.add(ELU())
     model.add(Convolution2D(32, 5, 5, subsample=(2, 2), border_mode="same"))
@@ -58,13 +58,13 @@ def create_model():
     model.compile(optimizer="adam", loss="mse")
     return model
 
-def create_model_n():
+def create_model():
     """Create model
     """
-    ch, row, col = 3, 80, 320  # Trimmed image format
+    ch, row, col = 3, 65, 320  # Trimmed image format
     model = Sequential()
     # crop image. new shape: (80, 320, 3)
-    model.add(Cropping2D(cropping=((60,20), (0,0)), input_shape=(160,320,3)))
+    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=(160,320,3)))
     # normalize image
     model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(row, col, ch), output_shape=(row, col, ch)))
     model.add(Convolution2D(24, 5, 5, border_mode='same', activation='relu',
@@ -76,11 +76,11 @@ def create_model_n():
     model.add(Convolution2D(64, 3, 3, border_mode='same', activation='relu', ))
     model.add(Convolution2D(64, 3, 3, border_mode='same', activation='relu', ))
     model.add(Flatten())
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.5))
     model.add(Dense(1164, activation='relu'))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.5))
     model.add(Dense(100, activation='relu'))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.5))
     model.add(Dense(50, activation='relu'))
     model.add(Dense(1))
     return model
@@ -108,24 +108,6 @@ def train():
             nb_epoch=5)
     save_model(model)
 
-def run_test():
-    ''' verify the validity of the model by checking that it will overfit when
-        training data only has a few samples'''
-    samples = []
-    with open(DATA_FOLDER + 'driving_log.csv') as csvfile:
-        reader = csv.reader(csvfile)
-        # skip header
-        next(reader, None)
-        for line in reader:
-            samples.append(line)
-    train_generator = generator(samples, batch_size=3)
-    model = create_model()
-    model.compile(loss='mse', optimizer='adam')
-    model.fit_generator(train_generator,
-            samples_per_epoch=len(samples), 
-            nb_epoch=100)
-    save_model(model)
-
 def save_model(model):
     ''' save a model to disc
     '''
@@ -142,10 +124,8 @@ def show_model_info(model=None):
     print(model.summary())
 
 if __name__ == "__main__":
-    #preprocess()    
-    train()
-    #run_test()
-    #show_model_info()
+    #train()
+    show_model_info()
     #model = create_model()
     #show_model_info(model)    
     
