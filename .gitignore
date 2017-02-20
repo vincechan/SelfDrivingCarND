@@ -3,7 +3,11 @@ p3-behavioral-cloning/IMG/**
 p3-behavioral-cloning/**/IMG/**
 p3-behavioral-cloning/driving_log.csv
 p3-behavioral-cloning/**/driving_log.csv
+p3-behavioral-cloning/run*/**
+p3-behavioral-cloning/run*
 
 p3-behavioral-cloning/.ipynb_checkpoints/data-analysis-checkpoint.ipynb
 
 p3-behavioral-cloning/.ipynb_checkpoints/data-checkpoint.ipynb
+
+p3-behavioral-cloning/.ipynb_checkpoints/preprocessing-checkpoint.ipynb
