@@ -1,20 +1,15 @@
 import csv
+import cv2
 import json
-import os
-
 import matplotlib.image as mpimg
 import numpy as np
-import pandas as pd
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-
-import cv2
-from keras.layers import (Activation, Convolution2D, Cropping2D, Dense,
-                          Dropout, Flatten, Lambda, MaxPooling2D, ELU)
+from keras.layers import (ELU, Activation, Convolution2D, Cropping2D, Dense,
+                          Dropout, Flatten, Lambda, MaxPooling2D)
 from keras.models import Sequential, load_model
-
-
-DATA_FOLDER = "./data/"
+from keras.utils.visualize_util import plot
 
 def generator(samples, batch_size=32):
     ''' feed data to keras fit_generator for training
@@ -37,11 +32,12 @@ def generator(samples, batch_size=32):
             yield shuffle(X_train, y_train)
 
 def create_model_commaai():
-    #ch, row, col = 3, 160, 320  # camera format
-    ch, row, col = 3, 65, 320  # Trimmed image format
-
+    ''' comma ai model
+    '''
+    cam_ch, cam_row, cam_col = 3, 160, 320
+    ch, row, col = 3, 65, 320  # cropped image 
     model = Sequential()
-    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=(160,320,3)))
+    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=(cam_row, cam_col, cam_ch)))
     model.add(Lambda(lambda x: x/255 - 0.5, input_shape=(row, col, ch), output_shape=(row, col, ch)))
     model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same"))
     model.add(ELU())
@@ -59,13 +55,14 @@ def create_model_commaai():
     return model
 
 def create_model():
-    """Create model
+    """ Nvidia model
     """
-    ch, row, col = 3, 65, 320  # Trimmed image format
+    cam_ch, cam_row, cam_col = 3, 160, 320
+    ch, row, col = 3, 65, 320  # cropped image 
     model = Sequential()
-    # crop image. new shape: (80, 320, 3)
-    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=(160,320,3)))
-    # normalize image
+    # crop 
+    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=(cam_row, cam_col, cam_ch)))
+    # normalize
     model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(row, col, ch), output_shape=(row, col, ch)))
     model.add(Convolution2D(24, 5, 5, border_mode='same', activation='relu',
                             subsample=(2, 2), input_shape=(ch, row, col)))
@@ -89,7 +86,7 @@ def train():
     samples = []
     with open('processed_driving_log.csv') as csvfile:
         reader = csv.reader(csvfile)
-        next(reader, None) # skip header
+        #next(reader, None) # skip header
         for row in reader:
             samples.append([row[0],row[1]])
     print("samples", len(samples))
@@ -109,24 +106,20 @@ def train():
     save_model(model)
 
 def save_model(model):
-    ''' save a model to disc
+    ''' save a model
     '''
     model.save("model.h5")
 
 def show_model_info(model=None):
     ''' generate a diagram for the model and print the model summary
     '''
-    from keras.models import load_model
-    from keras.utils.visualize_util import plot
     if model == None:
         model = load_model("model.h5")
     plot(model, to_file='model.png', show_shapes=True)
     print(model.summary())
 
 if __name__ == "__main__":
-    #train()
-    show_model_info()
+    train()
+    #show_model_info()
     #model = create_model()
     #show_model_info(model)    
-    
-
