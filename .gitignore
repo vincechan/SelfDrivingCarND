@@ -11,3 +11,5 @@ p3-behavioral-cloning/.ipynb_checkpoints/data-analysis-checkpoint.ipynb
 p3-behavioral-cloning/.ipynb_checkpoints/data-checkpoint.ipynb
 
 p3-behavioral-cloning/.ipynb_checkpoints/preprocessing-checkpoint.ipynb
+
+p3-behavioral-cloning/model.h5
