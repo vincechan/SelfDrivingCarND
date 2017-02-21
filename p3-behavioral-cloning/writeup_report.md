@@ -59,15 +59,15 @@ The model used an adam optimizer, so the learning rate was not tuned manually.
 
 The model has 3 dropout layers. I have experimented drop out rate between 0.2 and 0.5 and finally settled on 0.5.
 
-I used batch size of 32 and 5 epoch. I found that the loss doesn't improve after 5 epoch.
+I used batch size of 32 and trained for 5 epochs. I found that the loss doesn't improve after 5 epoch.
 
 ####4. Appropriate training data
 
-I used the data from Udacity data set with preprocessing and data augmentation. There are a few main issues that need to be addressed in order to use just that dataset to train a good model.
+I used the data from Udacity data set with preprocessing and data augmentation. There are a few issues that need to be addressed in order to get a good model with that dataset.
 
-* The data was obtained from driving on track 1, which is mostly straight road. Majority of the samples have zero steering angle. We need to under sample the images with zero steering angle, otherwise the model will bias toward zero steering.
-* The left steering and right steering samples are not balanced in the dataset. This is easily resolve by flipping left and right for all samples that do not have zero steering. After this process, we will have same number of left vs right steering samples.
-* The data does not have many recovery examples. To teach the car recovery once it's off centered, we utilitze the images from left and right camera with a CORRECTION of 0.15.
+* The dataset was obtained from driving around track 1. This track is mostly straight road. As a result, majority of the samples have zero steering angle. We need to under sample the images with zero steering angle, otherwise the model will bias toward zero steering.
+* The left steering and right steering samples are not balanced in the dataset. This can be easily resolved by flipping horizontally for all samples. After this process, we will have same number of left vs right steering samples.
+* The data does not have much if any recovery examples. To teach the car recovery once it's off center, we apply the same concept that's used in the Nvidia paper and utilize the images from left and right camera with a CORRECTION rate of 0.15.
 
 For details about how I preprocess the training data, see the next section. 
 
@@ -77,43 +77,45 @@ For details about how I preprocess the training data, see the next section.
 
 My first step was to use a convolution neural network model similar to the the model in [Nvidia End to End Learning for Self-Driving Cars](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf) paper. I thought that model was appropriate because it's a similar problem. In fact, it's more powerful than what we need here since we are only dealing with two tracks with limited scenery. 
 
-Next, I modify the model to add a lamda layer to normalize the the images. I added a few dropout layers after each fully connected layers. I also split my image and steering angle data into a 80% training and 20% validation set.
+Next, I modified the model to add a lamda layer to normalize the the images. I also added a few dropout layers after each fully connected layers. I also split my image and steering angle data into a 80% training and 20% validation set.
 
-Next, I just try to train a model to drive in the simulator to verify that I have working pipeline. Without other data preprocessing, I used the center steering in udacity dataset to train the model and tested it in the simulator. The car drove straight off track in the first big turn.
+Next, I trained a model to drive in the simulator to verify that I have working pipeline. Without other data preprocessing, I used the center steering in udacity dataset to train the model and tested it in the simulator. The car drove straight off track in the first big turn.
 
-Once I have a working pipeline, I started working on analysing and preprocess the dataset. The code and steps of the data exploration and preprocessing can also be found in the preprocessing.ipynb notebook.
+Once I have a working pipeline, I started working on analysing and preprocess the dataset. The code and steps of the data exploration and preprocessing can also be found in the preprocessing.ipynb notebook. 
 
 ##### Steering angle distribution
 ![alt text](images/steering-distribution.png "Steering Distribution")
 
 ![alt text](images/steering-distribution2.png "Steering Distribution")
 
-From the steering distribution, we can tell that majority of the samples have zero or low steering angles. This would create a model that is bias toward driving stright. We also don't have enough samples for sharp turns (samples with large steering angles), and the left and right steering samples aren't balanced.
+From the steering distribution, we can tell that majority of the samples have zero or low steering angles. This would create a model that is bias toward driving stright. We can also see that the dataset have very few samples for sharp turns (samples with large steering angles), and the left and right steering samples aren't balanced.
 
 ##### Balance Left and Right steering
-We flip any images that have non-zero steering. This not only doubles the number of samples that have non-zero steering angles, it also balances the number of left steering vs right steering. This is a good alternative of collecting data while driving in opposite direction of the track. Following is the steering distribution after flipping.
+We flip any images horizontally that have non-zero steering, and multiply the corresponding steering angle by negative one. This not only doubles the number of samples that have non-zero steering angles, it also balances the number of left steering vs right steering. This has the effect of collecting data while driving in opposite direction of the track. Following is the steering distribution after flipping. The left and right side are exact mirror of each other.
 
 ![alt text](images/steering-distribution-after-flipping.png "Steering Distribution After Flipping")
 
-To make sure our preprocessing is doing what we think it is doing, we need to verify it by checking the actual samples. Following two images are the before and after flipping operation.
+Following two images show the effect of flipping an image horizontally. 
 
 ![alt text](images/center_2016_12_01_13_31_13_381.jpg "Before Flip")
 
 ![alt text](images/center_2016_12_01_13_31_13_381_flip.jpg "After Flip")
 
 ##### Using left and right camera images
-The car in the simulator has three cameras. See examples below. By applying the concept described in the Nvidia paper, we use left and right camera images and apply a correction offset to teach the car how to recover from off center. The correction rate I chose is 0.15. I found that it's good enough to get around the sharp turn without making the driving too jittery.
-Using the left and right camera images on top of the center camera images also have the nice effect of tripling the sample size.
+The car in the simulator has three cameras. See examples below. By applying the concept described in the Nvidia paper, we use left and right camera images and apply a correction offset to teach the car how to recover from off center. The correction rate I chose is 0.15. I found that it's good enough to get around the sharp turn without making the driving too jittery. Using the left and right camera images on top of the center camera images also have the nice effect of tripling the sample size.
 
 ![alt text](images/left-center-right.png "Left Center Right Camera Image")
 
 ##### Zero steering samples
-I break down all samples into 21 bins. From each bin, I only choose up to 500 samples. This will undersample the zero and low steering angle groups that are over represented in our data.
+I divide all samples into 21 bins. From each bin, I choose up to 500 samples. This will undersample the zero and low steering angle groups that are over represented in our data.
 
-##### Steering Distribution after data preprocessing
+##### Final Steering Distribution
+This is the final steering distribution of the samples. We have 5206 samples to work with.
 ![alt text](images/steering-distribution-processed.png "After Data Preprocessing")
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road. See the link on top of the file to view it in action.
+
+I had tested with the comma ai architecture described [here](https://github.com/commaai/research/blob/master/train_steering_model.py). But after the initial experiments and data exploration, I found that this project is much about collecting and processing the training data rather than the architecture of the network. 
 
 ####2. Final Model Architecture
 
@@ -161,3 +163,6 @@ Non-trainable params: 0
 Here is a visualization of the architecture:
 
 ![alt text](model.png "Model Architecture")
+
+#### Conclusion
+This is a really fun project. It really shows the importance of having quality data, no good model architecture can overcome bad training data. The information shared by other students in forum and slack channel provided really helpful and probably saved countless hours of more trial and errors.
